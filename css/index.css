@@ -1,0 +1,32 @@
+.cfix::after{
+    display: block;
+    content: "";
+    clear: both;
+    
+}
+.container{
+    width: 90%;
+    margin: 0 auto;
+    overflow: hidden;
+}
+/* ==================== */
+.header{
+    position: fixed;
+    width: 100%;
+    background: peru;
+    color:#fff;
+    font-family: 'Franklin Gothic medium'
+}
+.websiteTitle{
+    float:left;
+    height:20px;
+    font-size:20px;
+    font-weight:bold;
+    margin:20px 0;
+}
+.menuBtn{
+    float: right;
+    height: 20px;
+    margin: 20px 0;
+    font-size:20px;
+}
