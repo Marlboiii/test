@@ -4,17 +4,24 @@ import datetime as dt
 import json
 import sqlite3
 
-from .columns import FIELDS
+from .columns import FIELDS, INT_FIELDS
+
+def _sql_type(field):
+    return "INTEGER" if field in INT_FIELDS else "TEXT"
+
 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS orders (
     order_key TEXT PRIMARY KEY,
-    {", ".join(f"{f} {'INTEGER' if f in ('quantity', 'amount', 'shipping_fee') else 'TEXT'}" for f in FIELDS)},
+    {", ".join(f"{f} {_sql_type(f)}" for f in FIELDS)},
     extra TEXT,
     source_file TEXT,
     first_collected_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+"""
+
+INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_orders_ordered_at ON orders(ordered_at);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 """
@@ -23,10 +30,13 @@ COLUMNS = FIELDS + ["extra", "source_file", "first_collected_at", "updated_at"]
 
 
 def order_key(record):
-    """주문 1줄의 고유키. 주문상품번호가 있으면 그것을, 없으면 상품명+옵션을 쓴다."""
+    """주문 1줄의 고유키. 주문옵션번호가 있으면 그것을, 없으면 주문상품번호+상품명+옵션을 쓴다."""
     if record.get("item_no"):
         return f"{record['order_no']}#{record['item_no']}"
-    return f"{record['order_no']}#{record.get('product_name', '')}#{record.get('option', '')}"
+    return "#".join(
+        [record["order_no"]]
+        + [record.get(f) or "" for f in ("product_order_no", "product_name", "option")]
+    )
 
 
 def _now():
@@ -38,6 +48,16 @@ class OrderStore:
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self._migrate()
+        self.conn.executescript(INDEXES)
+
+    def _migrate(self):
+        """이전 버전 DB에 없는 컬럼을 추가한다."""
+        existing = {row["name"] for row in self.conn.execute("PRAGMA table_info(orders)")}
+        with self.conn:
+            for field in FIELDS:
+                if field not in existing:
+                    self.conn.execute(f"ALTER TABLE orders ADD COLUMN {field} {_sql_type(field)}")
 
     def close(self):
         self.conn.close()
@@ -104,7 +124,7 @@ class OrderStore:
         if collected_since:
             sql += " AND first_collected_at >= ?"
             params.append(collected_since)
-        sql += " ORDER BY ordered_at, order_no, item_no"
+        sql += " ORDER BY ordered_at, order_no, product_order_no, item_no"
         return [dict(row) for row in self.conn.execute(sql, params)]
 
     def status_counts(self):

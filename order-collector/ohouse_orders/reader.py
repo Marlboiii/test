@@ -6,7 +6,7 @@ import io
 import re
 from pathlib import Path
 
-from .columns import FIELDS, REQUIRED_FIELDS, build_column_map, load_aliases, looks_like_header
+from .columns import FIELDS, INT_FIELDS, REQUIRED_FIELDS, build_column_map, load_aliases, looks_like_header
 
 HEADER_SCAN_ROWS = 20
 
@@ -205,7 +205,10 @@ def normalize_record(raw):
         value = raw.get(field)
         if field == "ordered_at":
             record[field] = parse_datetime(value)
-        elif field in ("quantity", "amount", "shipping_fee"):
+        elif field == "ship_due_date":
+            parsed = parse_datetime(value)
+            record[field] = parsed[:10] if parsed and parsed.endswith("00:00:00") else parsed
+        elif field in INT_FIELDS:
             record[field] = parse_int(value)
         elif field in ("buyer_phone", "receiver_phone"):
             record[field] = normalize_phone(value)
