@@ -1,0 +1,7 @@
+__pycache__/
+*.db
+# 주문 파일에는 고객 개인정보가 들어 있으므로 커밋하지 않는다
+downloads/
+*.xlsx
+*.xls
+*.csv
