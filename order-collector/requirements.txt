@@ -1,0 +1,5 @@
+openpyxl>=3.1
+# 선택: 비밀번호가 걸린 엑셀 파일을 열 때 필요
+msoffcrypto-tool>=5.0
+# 선택: 구형 .xls 파일을 열 때 필요
+xlrd>=2.0
